@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advaay – Class 12 Dashboard</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0d0f18;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  /* ── TOP NAV ── */
+  .nav {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .nav-btn {
+    padding: 7px 20px;
+    border-radius: 20px;
+    border: 1.5px solid #2a2d3a;
+    background: #1a1d27;
+    color: #888;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: #a0c4ff; color: #a0c4ff; }
+  .nav-btn.active { background: #a0c4ff; color: #0d0f18; border-color: #a0c4ff; font-weight: 700; }
+
+  h1 {
+    text-align: center;
+    font-size: 1.4rem;
+    color: #a0c4ff;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .subtitle { text-align: center; font-size: 0.75rem; color: #444; margin-bottom: 18px; }
+  .sync-status { text-align: center; font-size: 0.7rem; margin-bottom: 16px; }
+  .sync-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #636e72; margin-right: 5px; vertical-align: middle; }
+  .sync-dot.connected { background: #44bd32; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── DAY TABS ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 22px;
+  }
+  .tab {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1.5px solid #2a2d3a;
+    background: #1a1d27;
+    color: #888;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { border-color: #a0c4ff; color: #a0c4ff; }
+  .tab.active { background: #a0c4ff; color: #0d0f18; border-color: #a0c4ff; font-weight: 700; }
+
+  .day-panel { display: none; }
+  .day-panel.active { display: block; }
+
+  .day-card {
+    background: #1a1d27;
+    border-radius: 18px;
+    padding: 24px 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+  }
+  .day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .day-title { font-size: 1.2rem; font-weight: 700; color: #fff; }
+  .day-desc { font-size: 0.72rem; color: #666; margin-top: 3px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.68rem; font-weight: 600; }
+
+  .content-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .pie-wrap { flex-shrink: 0; }
+  canvas.pie { display: block; }
+
+  .right-col { flex: 1; min-width: 250px; }
+
+  .legend { margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1e2130; }
+  .dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .legend-label { font-size: 0.75rem; color: #ccc; flex: 1; }
+  .legend-time { font-size: 0.68rem; color: #666; white-space: nowrap; }
+  .legend-hrs { font-size: 0.72rem; color: #a0c4ff; font-weight: 600; margin-left: 5px; white-space: nowrap; }
+
+  .checklist-title { font-size: 0.82rem; font-weight: 700; color: #a0c4ff; margin-bottom: 9px; text-transform: uppercase; letter-spacing: 1px; }
+  .checklist { display: flex; flex-direction: column; gap: 6px; }
+  .check-item {
+    display: flex; align-items: center; gap: 9px;
+    background: #12141e; border-radius: 8px; padding: 8px 11px;
+    cursor: pointer; transition: background 0.15s; border: 1px solid #1e2130;
+  }
+  .check-item:hover { background: #1e2130; }
+  .check-item.done { opacity: 0.5; }
+  .check-item.done .check-text { text-decoration: line-through; color: #555; }
+  .checkbox {
+    width: 17px; height: 17px; border-radius: 4px; border: 2px solid #333;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; font-size: 10px;
+  }
+  .check-item.done .checkbox { background: #44bd32; border-color: #44bd32; color: #fff; }
+  .check-text { font-size: 0.76rem; color: #ccc; flex: 1; }
+  .check-tag { font-size: 0.63rem; padding: 2px 7px; border-radius: 8px; font-weight: 600; white-space: nowrap; }
+
+  .reset-btn {
+    margin-top: 10px; background: none; border: 1px solid #2a2d3a;
+    color: #555; font-size: 0.7rem; padding: 5px 13px; border-radius: 10px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+  .progress-bar-wrap { margin-top: 12px; background: #12141e; border-radius: 6px; height: 5px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, #44bd32, #a0c4ff); border-radius: 6px; transition: width 0.3s; }
+  .progress-label { font-size: 0.68rem; color: #555; margin-top: 4px; text-align: right; }
+
+  /* ── GRAPH SCREEN ── */
+  .graph-card {
+    background: #1a1d27;
+    border-radius: 18px;
+    padding: 28px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+  }
+  .graph-title { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .graph-sub { font-size: 0.72rem; color: #555; margin-bottom: 24px; }
+  .chart-wrap { position: relative; height: 320px; }
+
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .stat-box {
+    flex: 1;
+    min-width: 120px;
+    background: #12141e;
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+    border: 1px solid #1e2130;
+  }
+  .stat-num { font-size: 1.6rem; font-weight: 700; color: #a0c4ff; }
+  .stat-label { font-size: 0.68rem; color: #555; margin-top: 3px; }
+
+  .log-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 11px;
+    background: #a0c4ff;
+    color: #0d0f18;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .log-btn:hover { opacity: 0.85; }
+  .log-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .log-msg { text-align: center; font-size: 0.72rem; color: #44bd32; margin-top: 8px; min-height: 18px; }
+
+  /* ── SETUP SCREEN ── */
+  .setup-card {
+    background: #1a1d27;
+    border-radius: 18px;
+    padding: 28px 24px;
+    max-width: 540px;
+    margin: 0 auto;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+  }
+  .setup-title { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .setup-sub { font-size: 0.75rem; color: #666; margin-bottom: 20px; line-height: 1.6; }
+  .setup-input {
+    width: 100%;
+    background: #12141e;
+    border: 1px solid #2a2d3a;
+    color: #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    outline: none;
+  }
+  .setup-input:focus { border-color: #a0c4ff; }
+  .setup-btn {
+    width: 100%;
+    padding: 11px;
+    background: #a0c4ff;
+    color: #0d0f18;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .setup-note { font-size: 0.68rem; color: #444; margin-top: 12px; line-height: 1.6; }
+  .setup-note a { color: #a0c4ff; }
+</style>
+</head>
+<body>
+
+<h1>📚 Advaay's Dashboard</h1>
+<p class="subtitle">Class 12 CBSE · 2025–26</p>
+<p class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Not connected</span></p>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showScreen('schedule')">📅 Schedule</button>
+  <button class="nav-btn" onclick="showScreen('graph')">📈 Progress</button>
+  <button class="nav-btn" onclick="showScreen('setup')">⚙️ Setup</button>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SCHEDULE SCREEN                           -->
+<!-- ══════════════════════════════════════════ -->
+<div class="screen active" id="screen-schedule">
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- GRAPH SCREEN                              -->
+<!-- ══════════════════════════════════════════ -->
+<div class="screen" id="screen-graph">
+  <div class="graph-card">
+    <div class="graph-title">📈 Yearly Progress</div>
+    <div class="graph-sub">Daily task completion % — logged each day</div>
+    <div class="chart-wrap">
+      <canvas id="progressChart"></canvas>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num" id="statAvg">–</div>
+        <div class="stat-label">Avg % this month</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statStreak">–</div>
+        <div class="stat-label">Day streak 🔥</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statBest">–</div>
+        <div class="stat-label">Best day ever</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statTotal">–</div>
+        <div class="stat-label">Days logged</div>
+      </div>
+    </div>
+    <button class="log-btn" id="logBtn" onclick="logToday()">✅ Log Today's Score</button>
+    <div class="log-msg" id="logMsg"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SETUP SCREEN                              -->
+<!-- ══════════════════════════════════════════ -->
+<div class="screen" id="screen-setup">
+  <div class="setup-card">
+    <div class="setup-title">⚙️ Firebase Setup</div>
+    <div class="setup-sub">
+      Paste your Firebase config here to enable sync across phone + PC.<br>
+      Your checklist and progress will be saved in the cloud.<br><br>
+      <strong style="color:#a0c4ff">How to get config:</strong><br>
+      1. Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br>
+      2. Create a free project → Add Web App<br>
+      3. Copy the <code style="color:#a0c4ff">firebaseConfig</code> object<br>
+      4. Paste the JSON below and click Save
+    </div>
+    <textarea class="setup-input" id="firebaseConfigInput" rows="8" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "databaseURL": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+    <button class="setup-btn" onclick="saveFirebaseConfig()">💾 Save & Connect</button>
+    <div class="setup-note">
+      Config is stored in your browser's localStorage. It won't be sent anywhere except Firebase.<br>
+      Make sure you enable <strong>Realtime Database</strong> in your Firebase project and set rules to allow read/write.
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const DAYS = [
+  {
+    name: "Monday", emoji: "📅", desc: "School + CS evening",
+    badges: [{ text: "School", color: "#e07b54" }, { text: "CS", color: "#0abde3" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
+      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
+      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
+      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
+      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
+      { label: "Break / snack",       time: "5pm – 6pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "CS self-study",       time: "6pm – 7pm",     hrs: 1,    color: "#0abde3" },
+      { label: "Dinner",              time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Free time / games",   time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
+      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "Physics – read 1 topic from current chapter", tag: "Physics", tagColor: "#44bd32" },
+      { text: "Physics – solve NCERT examples", tag: "Physics", tagColor: "#44bd32" },
+      { text: "CS – complete 1 unit topic / write code", tag: "CS", tagColor: "#0abde3" },
+      { text: "Pack school bag for tomorrow", tag: "Admin", tagColor: "#636e72" },
+    ]
+  },
+  {
+    name: "Tuesday", emoji: "📅", desc: "School + English evening",
+    badges: [{ text: "School", color: "#e07b54" }, { text: "English", color: "#a29bfe" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
+      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
+      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
+      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
+      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
+      { label: "Break / snack",       time: "5pm – 6pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "English self-study",  time: "6pm – 7pm",     hrs: 1,    color: "#a29bfe" },
+      { label: "Dinner",              time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Free time / games",   time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
+      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "Physics – 1 topic + derivation from memory", tag: "Physics", tagColor: "#44bd32" },
+      { text: "English – 1 Flamingo/Vistas chapter", tag: "English", tagColor: "#a29bfe" },
+      { text: "English – 1 writing format practice", tag: "English", tagColor: "#a29bfe" },
+      { text: "Pack school bag for tomorrow", tag: "Admin", tagColor: "#636e72" },
+    ]
+  },
+  {
+    name: "Wednesday", emoji: "📅", desc: "School + Chem Tuition",
+    badges: [{ text: "School", color: "#e07b54" }, { text: "Chem Tuition 5–7pm", color: "#f9ca24" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
+      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
+      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
+      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
+      { label: "English / CS",        time: "3:45 – 5pm",    hrs: 1.25, color: "#a29bfe" },
+      { label: "Chem tuition",        time: "5pm – 7pm",     hrs: 2,    color: "#f9ca24" },
+      { label: "Chem revision",       time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Dinner + free",       time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
+      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "English or CS – 1 topic before tuition", tag: "English/CS", tagColor: "#a29bfe" },
+      { text: "Chem tuition – pay attention, note doubts", tag: "Chemistry", tagColor: "#f9ca24" },
+      { text: "After tuition – rewrite key reactions from memory", tag: "Chemistry", tagColor: "#f9ca24" },
+      { text: "Pack school bag for tomorrow", tag: "Admin", tagColor: "#636e72" },
+    ]
+  },
+  {
+    name: "Thursday", emoji: "📅", desc: "School + Psychology evening",
+    badges: [{ text: "School", color: "#e07b54" }, { text: "Psychology", color: "#e17055" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
+      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
+      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
+      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
+      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
+      { label: "Break / snack",       time: "5pm – 6pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Psychology",          time: "6pm – 7pm",     hrs: 1,    color: "#e17055" },
+      { label: "Dinner",              time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Free time / games",   time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
+      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "Physics – numericals from current chapter", tag: "Physics", tagColor: "#44bd32" },
+      { text: "Psychology – read 1 chapter, make short notes", tag: "Psychology", tagColor: "#e17055" },
+      { text: "Psychology – answer 1 previous year 5-mark Q", tag: "Psychology", tagColor: "#e17055" },
+      { text: "Pack school bag for tomorrow", tag: "Admin", tagColor: "#636e72" },
+    ]
+  },
+  {
+    name: "Friday", emoji: "📅", desc: "School + Bio Tuition + Gym",
+    badges: [{ text: "Bio Tuition 5–7pm", color: "#0abde3" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
+      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
+      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
+      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
+      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
+      { label: "Bio tuition",         time: "5pm – 7pm",     hrs: 2,    color: "#0abde3" },
+      { label: "Dinner + break",      time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Gym",                 time: "8pm – 10pm",    hrs: 2,    color: "#ff6b6b" },
+      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "Physics – 1 topic before tuition", tag: "Physics", tagColor: "#44bd32" },
+      { text: "Bio tuition – note all diagrams teacher draws", tag: "Biology", tagColor: "#0abde3" },
+      { text: "After tuition – redraw 1 diagram from memory", tag: "Biology", tagColor: "#0abde3" },
+      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
+    ]
+  },
+  {
+    name: "Saturday", emoji: "📅", desc: "Chem Tuition + Gym",
+    badges: [{ text: "Chem Tuition 5–7pm", color: "#f9ca24" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 9:30am", hrs: 9.5,  color: "#2d3561" },
+      { label: "Morning routine",     time: "9:30 – 10:30am",hrs: 1,    color: "#3d5a80" },
+      { label: "Physics self-study",  time: "10:30am – 12pm",hrs: 1.5,  color: "#44bd32" },
+      { label: "Lunch + break",       time: "12pm – 1pm",    hrs: 1,    color: "#f9ca24" },
+      { label: "CS / English",        time: "1pm – 3pm",     hrs: 2,    color: "#0abde3" },
+      { label: "Free time",           time: "3pm – 5pm",     hrs: 2,    color: "#fd79a8" },
+      { label: "Chem tuition",        time: "5pm – 7pm",     hrs: 2,    color: "#f9ca24" },
+      { label: "Chem revision",       time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
+      { label: "Gym",                 time: "8pm – 10pm",    hrs: 2,    color: "#ff6b6b" },
+      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "Physics – full chapter revision / derivations", tag: "Physics", tagColor: "#44bd32" },
+      { text: "CS – 1 full unit or SQL practice queries", tag: "CS", tagColor: "#0abde3" },
+      { text: "Chem tuition – solve examples in real time", tag: "Chemistry", tagColor: "#f9ca24" },
+      { text: "After tuition – rewrite key reactions from memory", tag: "Chemistry", tagColor: "#f9ca24" },
+      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
+    ]
+  },
+  {
+    name: "Sunday", emoji: "📅", desc: "Bio Tuition + Free Day (no gym)",
+    badges: [{ text: "Bio Tuition 10am–12pm", color: "#0abde3" }, { text: "No Gym", color: "#636e72" }],
+    slots: [
+      { label: "Sleep",               time: "12am – 9am",    hrs: 9,    color: "#2d3561" },
+      { label: "Morning routine",     time: "9am – 10am",    hrs: 1,    color: "#3d5a80" },
+      { label: "Bio tuition",         time: "10am – 12pm",   hrs: 2,    color: "#0abde3" },
+      { label: "Lunch + rest",        time: "12pm – 1pm",    hrs: 1,    color: "#f9ca24" },
+      { label: "Bio revision",        time: "1pm – 2:30pm",  hrs: 1.5,  color: "#44bd32" },
+      { label: "FREE TIME 🎮",        time: "2:30pm – 6pm",  hrs: 3.5,  color: "#fd79a8" },
+      { label: "Physics self-study",  time: "6pm – 7:30pm",  hrs: 1.5,  color: "#a29bfe" },
+      { label: "English / Psych",     time: "7:30pm – 9pm",  hrs: 1.5,  color: "#e17055" },
+      { label: "Wind down / free",    time: "9pm – 12am",    hrs: 3,    color: "#636e72" },
+    ],
+    tasks: [
+      { text: "Bio tuition – note all diagrams", tag: "Biology", tagColor: "#0abde3" },
+      { text: "Bio revision – redraw 2 diagrams from memory", tag: "Biology", tagColor: "#0abde3" },
+      { text: "Physics – solve 5 numericals", tag: "Physics", tagColor: "#a29bfe" },
+      { text: "English – 1 chapter OR Psychology – 1 chapter", tag: "Eng/Psych", tagColor: "#e17055" },
+      { text: "Game / chill with friends 🎮", tag: "Free", tagColor: "#fd79a8" },
+    ]
+  }
+];
+
+// ══════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════
+let db = null;
+let fbRef = null;
+let cloudState = {};
+
+function initFirebase() {
+  const saved = localStorage.getItem('fb_config');
+  if (!saved) return;
+  try {
+    const cfg = JSON.parse(saved);
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    db = firebase.database();
+    fbRef = db.ref('advaay_schedule');
+    fbRef.on('value', snap => {
+      cloudState = snap.val() || {};
+      const day = currentDayIndex();
+      loadChecks(day);
+      refreshGraph();
+    });
+    document.getElementById('syncDot').classList.add('connected');
+    document.getElementById('syncText').textContent = 'Synced';
+    document.getElementById('firebaseConfigInput').value = JSON.stringify(cfg, null, 2);
+  } catch(e) {
+    document.getElementById('syncText').textContent = 'Config error';
+  }
+}
+
+function saveFirebaseConfig() {
+  const val = document.getElementById('firebaseConfigInput').value.trim();
+  try {
+    const cfg = JSON.parse(val);
+    localStorage.setItem('fb_config', JSON.stringify(cfg));
+    location.reload();
+  } catch(e) {
+    alert('Invalid JSON. Check your config and try again.');
+  }
+}
+
+function getState() {
+  if (db) return cloudState;
+  try { return JSON.parse(localStorage.getItem('advaay_checks')) || {}; } catch { return {}; }
+}
+
+function saveState(s) {
+  if (db && fbRef) {
+    fbRef.set(s);
+  } else {
+    try { localStorage.setItem('advaay_checks', JSON.stringify(s)); } catch {}
+  }
+}
+
+// ══════════════════════════════════════
+// SCREEN NAV
+// ══════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'graph') refreshGraph();
+}
+
+// ══════════════════════════════════════
+// BUILD SCHEDULE
+// ══════════════════════════════════════
+const tabsEl = document.getElementById('tabs');
+const panelsEl = document.getElementById('panels');
+const piesDrawn = {};
+
+DAYS.forEach((day, i) => {
+  const tab = document.createElement('div');
+  tab.className = 'tab' + (i === 0 ? ' active' : '');
+  tab.textContent = day.name;
+  tab.onclick = () => switchDay(i);
+  tabsEl.appendChild(tab);
+
+  const panel = document.createElement('div');
+  panel.className = 'day-panel' + (i === 0 ? ' active' : '');
+  panel.id = 'panel-' + i;
+
+  const badgesHTML = day.badges.map(b =>
+    `<span class="badge" style="background:${b.color}22;color:${b.color};border:1px solid ${b.color}44">${b.text}</span>`
+  ).join('');
+
+  const legendHTML = day.slots.map(s =>
+    `<div class="legend-item">
+      <div class="dot" style="background:${s.color}"></div>
+      <div class="legend-label">${s.label}</div>
+      <div class="legend-time">${s.time}</div>
+      <div class="legend-hrs">${s.hrs}h</div>
+    </div>`
+  ).join('');
+
+  const tasksHTML = day.tasks.map((t, ti) =>
+    `<div class="check-item" id="task-${i}-${ti}" onclick="toggleTask(${i},${ti})">
+      <div class="checkbox" id="cb-${i}-${ti}"></div>
+      <div class="check-text">${t.text}</div>
+      <span class="check-tag" style="background:${t.tagColor}22;color:${t.tagColor};border:1px solid ${t.tagColor}44">${t.tag}</span>
+    </div>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="day-card">
+      <div class="day-header">
+        <div>
+          <div class="day-title">${day.emoji} ${day.name}</div>
+          <div class="day-desc">${day.desc}</div>
+        </div>
+        <div class="badges">${badgesHTML}</div>
+      </div>
+      <div class="content-row">
+        <div class="pie-wrap">
+          <canvas class="pie" id="pie-${i}" width="200" height="200"></canvas>
+          <div class="legend">${legendHTML}</div>
+        </div>
+        <div class="right-col">
+          <div class="checklist-title">✅ Today's Tasks</div>
+          <div class="checklist">${tasksHTML}</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="prog-${i}" style="width:0%"></div>
+          </div>
+          <div class="progress-label" id="prog-label-${i}">0 / ${day.tasks.length} done</div>
+          <button class="reset-btn" onclick="resetDay(${i})">Reset checklist</button>
+        </div>
+      </div>
+    </div>`;
+  panelsEl.appendChild(panel);
+});
+
+// ══════════════════════════════════════
+// PIE CHARTS
+// ══════════════════════════════════════
+function drawPie(i) {
+  const canvas = document.getElementById('pie-' + i);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const slots = DAYS[i].slots;
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r = 80, innerR = 36;
+  const total = slots.reduce((s, d) => s + d.hrs, 0);
+  let startAngle = -Math.PI / 2;
+  slots.forEach(seg => {
+    const slice = (seg.hrs / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    ctx.strokeStyle = "#0d0f18";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    startAngle += slice;
+  });
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, 2 * Math.PI);
+  ctx.fillStyle = "#1a1d27";
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 12px Segoe UI";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("24h", cx, cy);
+}
+
+function currentDayIndex() {
+  return new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+}
+
+function switchDay(i) {
+  document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
+  document.querySelectorAll('.day-panel').forEach((p, pi) => p.classList.toggle('active', pi === i));
+  if (!piesDrawn[i]) { drawPie(i); piesDrawn[i] = true; }
+  loadChecks(i);
+}
+
+// ══════════════════════════════════════
+// CHECKLIST
+// ══════════════════════════════════════
+function toggleTask(dayI, taskI) {
+  const state = getState();
+  const key = `${dayI}-${taskI}`;
+  state[key] = !state[key];
+  saveState(state);
+  applyCheck(dayI, taskI, state[key]);
+  updateProgress(dayI);
+}
+
+function applyCheck(dayI, taskI, done) {
+  const item = document.getElementById(`task-${dayI}-${taskI}`);
+  const cb = document.getElementById(`cb-${dayI}-${taskI}`);
+  if (!item) return;
+  item.classList.toggle('done', done);
+  cb.textContent = done ? '✓' : '';
+}
+
+function loadChecks(dayI) {
+  const state = getState();
+  DAYS[dayI].tasks.forEach((_, ti) => applyCheck(dayI, ti, !!state[`${dayI}-${ti}`]));
+  updateProgress(dayI);
+}
+
+function updateProgress(dayI) {
+  const state = getState();
+  const total = DAYS[dayI].tasks.length;
+  const done = DAYS[dayI].tasks.filter((_, ti) => state[`${dayI}-${ti}`]).length;
+  const pct = Math.round((done / total) * 100);
+  const bar = document.getElementById(`prog-${dayI}`);
+  const lbl = document.getElementById(`prog-label-${dayI}`);
+  if (bar) bar.style.width = pct + '%';
+  if (lbl) lbl.textContent = `${done} / ${total} done`;
+}
+
+function resetDay(dayI) {
+  const state = getState();
+  DAYS[dayI].tasks.forEach((_, ti) => delete state[`${dayI}-${ti}`]);
+  saveState(state);
+  loadChecks(dayI);
+}
+
+// ══════════════════════════════════════
+// PROGRESS GRAPH
+// ══════════════════════════════════════
+let chartInstance = null;
+
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getTodayPct() {
+  const state = getState();
+  const dayI = currentDayIndex();
+  const total = DAYS[dayI].tasks.length;
+  const done = DAYS[dayI].tasks.filter((_, ti) => state[`${dayI}-${ti}`]).length;
+  return Math.round((done / total) * 100);
+}
+
+function logToday() {
+  const state = getState();
+  const key = 'log_' + getTodayKey();
+  const pct = getTodayPct();
+  if (state[key] !== undefined) {
+    document.getElementById('logMsg').textContent = `Already logged today: ${state[key]}%`;
+    return;
+  }
+  state[key] = pct;
+  saveState(state);
+  document.getElementById('logMsg').textContent = `✅ Logged ${pct}% for today!`;
+  refreshGraph();
+}
+
+function refreshGraph() {
+  const state = getState();
+  const logs = [];
+  Object.keys(state).filter(k => k.startsWith('log_')).sort().forEach(k => {
+    logs.push({ date: k.replace('log_', ''), pct: state[k] });
+  });
+
+  const labels = logs.map(l => {
+    const [y, m, d] = l.date.split('-');
+    return `${d}/${m}`;
+  });
+  const data = logs.map(l => l.pct);
+
+  // Stats
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthLogs = logs.filter(l => l.date.startsWith(thisMonth));
+  const avg = monthLogs.length ? Math.round(monthLogs.reduce((s,l) => s+l.pct, 0) / monthLogs.length) : 0;
+  const best = logs.length ? Math.max(...logs.map(l => l.pct)) : 0;
+
+  // Streak
+  let streak = 0;
+  const today = getTodayKey();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = `log_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (state[k] !== undefined && state[k] > 0) streak++;
+    else if (i > 0) break;
+  }
+
+  document.getElementById('statAvg').textContent = avg + '%';
+  document.getElementById('statStreak').textContent = streak;
+  document.getElementById('statBest').textContent = best + '%';
+  document.getElementById('statTotal').textContent = logs.length;
+
+  // Update log button
+  const todayLogged = state['log_' + today] !== undefined;
+  const btn = document.getElementById('logBtn');
+  btn.disabled = todayLogged;
+  if (todayLogged) {
+    document.getElementById('logMsg').textContent = `Today logged: ${state['log_' + today]}%`;
+  }
+
+  // Draw chart
+  const ctx = document.getElementById('progressChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.length ? labels : ['No data yet'],
+      datasets: [{
+        label: 'Daily Task %',
+        data: data.length ? data : [0],
+        borderColor: '#a0c4ff',
+        backgroundColor: 'rgba(160,196,255,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: data.map(v => v >= 75 ? '#44bd32' : v >= 50 ? '#f9ca24' : '#ff6b6b'),
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.35,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          borderColor: '#2a2d3a',
+          borderWidth: 1,
+          titleColor: '#a0c4ff',
+          bodyColor: '#ccc',
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}% tasks done`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#555', font: { size: 11 } },
+          grid: { color: '#1e2130' }
+        },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: '#555', font: { size: 11 }, callback: v => v + '%' },
+          grid: { color: '#1e2130' }
+        }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+initFirebase();
+drawPie(0);
+piesDrawn[0] = true;
+const todayI = currentDayIndex();
+loadChecks(0);
+
+// Auto-highlight today's tab
+document.querySelectorAll('.tab')[todayI]?.click();
+</script>
+</body>
+</html>
