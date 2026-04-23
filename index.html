@@ -1,853 +1,339 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    </head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Advaay - Dashboard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aesthetic Gym Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #09090b;
+      --card-bg: rgba(24, 24, 27, 0.6);
+      --card-border: #27272a;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --accent-1: #8b5cf6; /* Purple */
+      --accent-2: #ec4899; /* Pink */
+      --accent-3: #06b6d4; /* Cyan */
+      --neon-glow: rgba(139, 92, 246, 0.4);
+    }
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-<!-- Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
 
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: #0d0f18;
-    color: #e0e0e0;
-    min-height: 100vh;
-    padding: 24px 16px 60px;
-  }
+    .container { max-width: 700px; margin: 0 auto; }
 
-  /* ── TOP NAV ── */
-  .nav {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  .nav-btn {
-    padding: 7px 20px;
-    border-radius: 20px;
-    border: 1.5px solid #2a2d3a;
-    background: #1a1d27;
-    color: #888;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .nav-btn:hover { border-color: #a0c4ff; color: #a0c4ff; }
-  .nav-btn.active { background: #a0c4ff; color: #0d0f18; border-color: #a0c4ff; font-weight: 700; }
+    .header-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, var(--accent-3), var(--accent-1), var(--accent-2));
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: -1px;
+    }
 
-  h1 {
-    text-align: center;
-    font-size: 1.4rem;
-    color: #a0c4ff;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 3px;
-  }
-  .subtitle { text-align: center; font-size: 0.75rem; color: #444; margin-bottom: 18px; }
-  .sync-status { text-align: center; font-size: 0.7rem; margin-bottom: 16px; }
-  .sync-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #636e72; margin-right: 5px; vertical-align: middle; }
-  .sync-dot.connected { background: #44bd32; }
+    .tip-box {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: #cffafe;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.1);
+    }
 
-  /* ── SCREENS ── */
-  .screen { display: none; }
-  .screen.active { display: block; }
+    /* Sleek Sync Button */
+    .sync-wrapper { text-align: center; margin-bottom: 32px; }
+    .sync-master-btn {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid var(--accent-3);
+      color: var(--accent-3);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sync-master-btn:hover {
+      background: var(--accent-3); color: #000; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+    }
+    .sync-master-btn.synced {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: #34d399;
+      color: #34d399;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+    .sync-master-btn.synced:hover {
+      background: #34d399; color: #000;
+    }
 
-  /* ── DAY TABS ── */
-  .tabs {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 7px;
-    margin-bottom: 22px;
-  }
-  .tab {
-    padding: 6px 16px;
-    border-radius: 20px;
-    border: 1.5px solid #2a2d3a;
-    background: #1a1d27;
-    color: #888;
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-  }
-  .tab:hover { border-color: #a0c4ff; color: #a0c4ff; }
-  .tab.active { background: #a0c4ff; color: #0d0f18; border-color: #a0c4ff; font-weight: 700; }
+    .day-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .day-card:hover {
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 8px 30px var(--neon-glow);
+      transform: translateY(-2px);
+    }
 
-  .day-panel { display: none; }
-  .day-panel.active { display: block; }
+    .day-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+      border-bottom: 1px solid var(--card-border); padding-bottom: 16px;
+    }
+    .day-badge { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 6px 12px; border-radius: 8px; }
+    .day-card h2 { font-size: 1.25rem; font-weight: 600; }
 
-  .day-card {
-    background: #1a1d27;
-    border-radius: 18px;
-    padding: 24px 20px;
-    max-width: 900px;
-    margin: 0 auto;
-    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
-  }
-  .day-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .day-title { font-size: 1.2rem; font-weight: 700; color: #fff; }
-  .day-desc { font-size: 0.72rem; color: #666; margin-top: 3px; }
-  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
-  .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.68rem; font-weight: 600; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px dashed #3f3f46; transition: opacity 0.3s; }
+    .row:last-child { border-bottom: none; padding-bottom: 0; }
 
-  .content-row {
-    display: flex;
-    gap: 24px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-  .pie-wrap { flex-shrink: 0; }
-  canvas.pie { display: block; }
+    /* Checkbox Styling */
+    .cb-container { display: flex; align-items: center; cursor: pointer; gap: 16px; user-select: none; flex: 1; }
+    .cb-container input { display: none; }
+    .checkmark {
+      width: 24px; height: 24px; border: 2px solid #52525b; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0;
+    }
+    .checkmark svg { width: 14px; height: 14px; fill: none; stroke: var(--bg-color); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(0.5); transition: all 0.2s ease; }
+    .cb-container input:checked ~ .checkmark { background: var(--accent-1); border-color: var(--accent-1); box-shadow: 0 0 15px var(--neon-glow); }
+    .cb-container input:checked ~ .checkmark svg { opacity: 1; transform: scale(1); }
+    .cb-container input:checked ~ .ex-details .ex-name { text-decoration: line-through; color: #52525b; }
 
-  .right-col { flex: 1; min-width: 250px; }
+    .ex-details { display: flex; flex-direction: column; gap: 4px; }
+    .ex-name { font-weight: 600; font-size: 1rem; color: var(--text-main); transition: all 0.2s; }
+    .ex-tip { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
 
-  .legend { margin-bottom: 16px; }
-  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1e2130; }
-  .dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
-  .legend-label { font-size: 0.75rem; color: #ccc; flex: 1; }
-  .legend-time { font-size: 0.68rem; color: #666; white-space: nowrap; }
-  .legend-hrs { font-size: 0.72rem; color: #a0c4ff; font-weight: 600; margin-left: 5px; white-space: nowrap; }
+    .right-info { text-align: right; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+    .tag { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.1); color: var(--text-muted); }
+    .sets { font-size: 0.9rem; font-weight: 800; color: var(--accent-3); background: rgba(6, 182, 212, 0.1); padding: 4px 10px; border-radius: 6px; }
 
-  .checklist-title { font-size: 0.82rem; font-weight: 700; color: #a0c4ff; margin-bottom: 9px; text-transform: uppercase; letter-spacing: 1px; }
-  .checklist { display: flex; flex-direction: column; gap: 6px; }
-  .check-item {
-    display: flex; align-items: center; gap: 9px;
-    background: #12141e; border-radius: 8px; padding: 8px 11px;
-    cursor: pointer; transition: background 0.15s; border: 1px solid #1e2130;
-  }
-  .check-item:hover { background: #1e2130; }
-  .check-item.done { opacity: 0.5; }
-  .check-item.done .check-text { text-decoration: line-through; color: #555; }
-  .checkbox {
-    width: 17px; height: 17px; border-radius: 4px; border: 2px solid #333;
-    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s; font-size: 10px;
-  }
-  .check-item.done .checkbox { background: #44bd32; border-color: #44bd32; color: #fff; }
-  .check-text { font-size: 0.76rem; color: #ccc; flex: 1; }
-  .check-tag { font-size: 0.63rem; padding: 2px 7px; border-radius: 8px; font-weight: 600; white-space: nowrap; }
+    .rest-card {
+      background: repeating-linear-gradient(45deg, rgba(24, 24, 27, 0.6), rgba(24, 24, 27, 0.6) 10px, rgba(39, 39, 42, 0.4) 10px, rgba(39, 39, 42, 0.4) 20px);
+      border: 1px dashed var(--accent-2); text-align: center; color: var(--text-main); border-radius: 20px; padding: 24px; margin-bottom: 24px;
+    }
+    .rest-card span { display: block; margin-top: 8px; color: var(--text-muted); font-size: 0.85rem; }
+    
+    .reset-btn {
+      display: block; width: 100%; padding: 16px; margin-top: 32px;
+      background: rgba(236, 72, 153, 0.1); color: var(--accent-2); border: 1px solid var(--accent-2); border-radius: 12px;
+      font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s;
+    }
+    .reset-btn:hover { background: var(--accent-2); color: #fff; box-shadow: 0 0 20px rgba(236, 72, 153, 0.4); }
 
-  .reset-btn {
-    margin-top: 10px; background: none; border: 1px solid #2a2d3a;
-    color: #555; font-size: 0.7rem; padding: 5px 13px; border-radius: 10px;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .reset-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
-
-  .progress-bar-wrap { margin-top: 12px; background: #12141e; border-radius: 6px; height: 5px; overflow: hidden; }
-  .progress-bar { height: 100%; background: linear-gradient(90deg, #44bd32, #a0c4ff); border-radius: 6px; transition: width 0.3s; }
-  .progress-label { font-size: 0.68rem; color: #555; margin-top: 4px; text-align: right; }
-
-  /* ── GRAPH SCREEN ── */
-  .graph-card {
-    background: #1a1d27;
-    border-radius: 18px;
-    padding: 28px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
-  }
-  .graph-title { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
-  .graph-sub { font-size: 0.72rem; color: #555; margin-bottom: 24px; }
-  .chart-wrap { position: relative; height: 320px; }
-
-  .stats-row {
-    display: flex;
-    gap: 12px;
-    margin-top: 24px;
-    flex-wrap: wrap;
-  }
-  .stat-box {
-    flex: 1;
-    min-width: 120px;
-    background: #12141e;
-    border-radius: 12px;
-    padding: 14px 16px;
-    text-align: center;
-    border: 1px solid #1e2130;
-  }
-  .stat-num { font-size: 1.6rem; font-weight: 700; color: #a0c4ff; }
-  .stat-label { font-size: 0.68rem; color: #555; margin-top: 3px; }
-
-  .log-btn {
-    margin-top: 20px;
-    width: 100%;
-    padding: 11px;
-    background: #a0c4ff;
-    color: #0d0f18;
-    border: none;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  .log-btn:hover { opacity: 0.85; }
-  .log-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .log-msg { text-align: center; font-size: 0.72rem; color: #44bd32; margin-top: 8px; min-height: 18px; }
-
-  /* ── SETUP SCREEN ── */
-  .setup-card {
-    background: #1a1d27;
-    border-radius: 18px;
-    padding: 28px 24px;
-    max-width: 540px;
-    margin: 0 auto;
-    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
-  }
-  .setup-title { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
-  .setup-sub { font-size: 0.75rem; color: #666; margin-bottom: 20px; line-height: 1.6; }
-  .setup-input {
-    width: 100%;
-    background: #12141e;
-    border: 1px solid #2a2d3a;
-    color: #e0e0e0;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 0.8rem;
-    margin-bottom: 10px;
-    outline: none;
-  }
-  .setup-input:focus { border-color: #a0c4ff; }
-  .setup-btn {
-    width: 100%;
-    padding: 11px;
-    background: #a0c4ff;
-    color: #0d0f18;
-    border: none;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .setup-note { font-size: 0.68rem; color: #444; margin-top: 12px; line-height: 1.6; }
-  .setup-note a { color: #a0c4ff; }
-</style>
+    .bg-mon { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .bg-tue { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .bg-thu { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .bg-fri { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .bg-sat { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+    .svg-check { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
+  </style>
 </head>
 <body>
 
-<h1>💻 Advaay's Dashboard</h1>
-<p class="subtitle">Class 12 CBSE · 2025–26</p>
-<p class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Not connected</span></p>
-
-<div class="nav">
-  <button class="nav-btn active" onclick="showScreen('schedule')">📅 Schedule</button>
-  <button class="nav-btn" onclick="showScreen('graph')">📈 Progress</button>
-  <button class="nav-btn" onclick="showScreen('setup')">⚙️ Setup</button>
-</div>
-
-<!-- ══════════════════════════════════════════ -->
-<!-- SCHEDULE SCREEN                           -->
-<!-- ══════════════════════════════════════════ -->
-<div class="screen active" id="screen-schedule">
-  <div class="tabs" id="tabs"></div>
-  <div id="panels"></div>
-</div>
-
-<!-- ══════════════════════════════════════════ -->
-<!-- GRAPH SCREEN                              -->
-<!-- ══════════════════════════════════════════ -->
-<div class="screen" id="screen-graph">
-  <div class="graph-card">
-    <div class="graph-title">📈 Yearly Progress</div>
-    <div class="graph-sub">Daily task completion % — logged each day</div>
-    <div class="chart-wrap">
-      <canvas id="progressChart"></canvas>
-    </div>
-    <div class="stats-row">
-      <div class="stat-box">
-        <div class="stat-num" id="statAvg">–</div>
-        <div class="stat-label">Avg % this month</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" id="statStreak">–</div>
-        <div class="stat-label">Day streak 🔥</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" id="statBest">–</div>
-        <div class="stat-label">Best day ever</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-num" id="statTotal">–</div>
-        <div class="stat-label">Days logged</div>
-      </div>
-    </div>
-    <button class="log-btn" id="logBtn" onclick="logToday()">✅ Log Today's Score</button>
-    <div class="log-msg" id="logMsg"></div>
+<div class="container">
+  <h1 class="header-title">HYPERTROPHY.exe</h1>
+  
+  <div class="tip-box">
+    <span style="font-size: 1.5rem;">🔥</span> 
+    Start every day: 20 min treadmill walk at 4–5 speed. Rest 60–90 sec between sets. Light weight, focus on form first.
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════ -->
-<!-- SETUP SCREEN                              -->
-<!-- ══════════════════════════════════════════ -->
-<div class="screen" id="screen-setup">
-  <div class="setup-card">
-    <div class="setup-title">⚙️ Firebase Setup</div>
-    <div class="setup-sub">
-      Paste your Firebase config here to enable sync across phone + PC.<br>
-      Your checklist and progress will be saved in the cloud.<br><br>
-      <strong style="color:#a0c4ff">How to get config:</strong><br>
-      1. Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br>
-      2. Create a free project → Add Web App<br>
-      3. Copy the <code style="color:#a0c4ff">firebaseConfig</code> object<br>
-      4. Paste the JSON below and click Save
-    </div>
-    <textarea class="setup-input" id="firebaseConfigInput" rows="8" placeholder='{
-  "apiKey": "...",
-  "authDomain": "...",
-  "databaseURL": "...",
-  "projectId": "...",
-  "storageBucket": "...",
-  "messagingSenderId": "...",
-  "appId": "..."
-}'></textarea>
-    <button class="setup-btn" onclick="saveFirebaseConfig()">💾 Save & Connect</button>
-    <div class="setup-note">
-      Config is stored in your browser's localStorage. It won't be sent anywhere except Firebase.<br>
-      Make sure you enable <strong>Realtime Database</strong> in your Firebase project and set rules to allow read/write.
-    </div>
+  <div class="sync-wrapper">
+    <button id="master-sync-btn" class="sync-master-btn">
+      ☁️ Enable Cloud Sync
+    </button>
   </div>
+
+  <div class="day-card">
+    <div class="day-header"><span class="day-badge bg-mon">Monday</span><h2>Chest + Triceps</h2></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="m1"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable chest fly</span><span class="ex-tip">Cable — set pulleys high, arms slightly bent</span></div></label><div class="right-info"><span class="tag">Chest</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="m2"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell chest press</span><span class="ex-tip">Dumbbells — lie on bench or floor, push up</span></div></label><div class="right-info"><span class="tag">Chest</span><span class="sets">3 × 10-12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="m3"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable tricep pushdown</span><span class="ex-tip">Cable — rope or straight bar, elbows at sides</span></div></label><div class="right-info"><span class="tag">Triceps</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="m4"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Overhead cable tricep ext.</span><span class="ex-tip">Cable — face away, push forward overhead</span></div></label><div class="right-info"><span class="tag">Triceps</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="m5"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Plank hold</span><span class="ex-tip">Floor — knees down if needed</span></div></label><div class="right-info"><span class="tag">Core</span><span class="sets">3 × 20s</span></div></div>
+  </div>
+
+  <div class="day-card">
+    <div class="day-header"><span class="day-badge bg-tue">Tuesday</span><h2>Back + Biceps</h2></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="t1"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Lat pulldown</span><span class="ex-tip">Lat machine — pull to upper chest, lean back slightly</span></div></label><div class="right-info"><span class="tag">Back</span><span class="sets">3 × 10-12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="t2"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Seated cable row</span><span class="ex-tip">Cable — low pulley, sit straight, pull to belly</span></div></label><div class="right-info"><span class="tag">Back</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="t3"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable straight arm pulldown</span><span class="ex-tip">Cable — high pulley, arms straight, pull down to thighs</span></div></label><div class="right-info"><span class="tag">Back</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="t4"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell bicep curl</span><span class="ex-tip">Dumbbells — don't swing body, slow movement</span></div></label><div class="right-info"><span class="tag">Biceps</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="t5"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Hammer curl</span><span class="ex-tip">Dumbbells — neutral grip (thumbs up)</span></div></label><div class="right-info"><span class="tag">Biceps</span><span class="sets">3 × 12</span></div></div>
+  </div>
+
+  <div class="rest-card">
+    <h2 style="font-size:1.2rem;">Wednesday — Active Rest 🌿</h2>
+    <span>20 min walk on treadmill only. No weights. Let the body breathe.</span>
+  </div>
+
+  <div class="day-card">
+    <div class="day-header"><span class="day-badge bg-thu">Thursday</span><h2>Shoulders + Core</h2></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="th1"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell shoulder press</span><span class="ex-tip">Dumbbells — seated, push up without locking elbows</span></div></label><div class="right-info"><span class="tag">Shoulder</span><span class="sets">3 × 10-12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="th2"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell lateral raise</span><span class="ex-tip">Dumbbells — very light weight, raise to shoulder height</span></div></label><div class="right-info"><span class="tag">Shoulder</span><span class="sets">3 × 15</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="th3"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable face pull</span><span class="ex-tip">Cable — rope attachment, pull to forehead level</span></div></label><div class="right-info"><span class="tag">Shoulder</span><span class="sets">3 × 15</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="th4"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable kneeling crunch</span><span class="ex-tip">Cable — high pulley, rope, kneel and crunch down</span></div></label><div class="right-info"><span class="tag">Core</span><span class="sets">3 × 15</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="th5"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable oblique twist</span><span class="ex-tip">Cable — side pull, rotate your torso</span></div></label><div class="right-info"><span class="tag">Core</span><span class="sets">3 × 12/side</span></div></div>
+  </div>
+
+  <div class="day-card">
+    <div class="day-header"><span class="day-badge bg-fri">Friday</span><h2>Back + Chest (Light)</h2></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="f1"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Wide grip lat pulldown</span><span class="ex-tip">Lat machine — wider than shoulder grip</span></div></label><div class="right-info"><span class="tag">Back</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="f2"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable low row (wide grip)</span><span class="ex-tip">Cable — use a wide bar if available</span></div></label><div class="right-info"><span class="tag">Back</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="f3"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell incline fly</span><span class="ex-tip">Dumbbells — bench inclined, open arms wide</span></div></label><div class="right-info"><span class="tag">Chest</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="f4"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable low to high fly</span><span class="ex-tip">Cable — low pulley, sweep arms up and across</span></div></label><div class="right-info"><span class="tag">Chest</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="f5"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dead bug (floor)</span><span class="ex-tip">Floor — lower back stays flat, move opp. arm+leg</span></div></label><div class="right-info"><span class="tag">Core</span><span class="sets">3 × 10</span></div></div>
+  </div>
+
+  <div class="day-card">
+    <div class="day-header"><span class="day-badge bg-sat">Saturday</span><h2>Arms + Core</h2></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="s1"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable curl (straight bar)</span><span class="ex-tip">Cable — low pulley, curl up slow</span></div></label><div class="right-info"><span class="tag">Biceps</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="s2"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell concentration curl</span><span class="ex-tip">Dumbbells — elbow on inner knee, full range</span></div></label><div class="right-info"><span class="tag">Biceps</span><span class="sets">3 × 10</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="s3"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable tricep pushdown (rope)</span><span class="ex-tip">Cable — flare hands out at the bottom</span></div></label><div class="right-info"><span class="tag">Triceps</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="s4"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Dumbbell overhead tricep ext.</span><span class="ex-tip">Dumbbells — one DB both hands, lower behind head</span></div></label><div class="right-info"><span class="tag">Triceps</span><span class="sets">3 × 12</span></div></div>
+    <div class="row"><label class="cb-container"><input type="checkbox" id="s5"><div class="checkmark"><div class="svg-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></div></div><div class="ex-details"><span class="ex-name">Cable woodchop</span><span class="ex-tip">Cable — high pulley, pull diagonally across body</span></div></label><div class="right-info"><span class="tag">Core</span><span class="sets">3 × 12/side</span></div></div>
+  </div>
+
+  <div class="rest-card">
+    <h2 style="font-size:1.2rem;">Sunday — Full Rest 🔋</h2>
+    <span>No gym. Eat well, sleep 7–8 hrs, let the muscles rebuild for the week ahead.</span>
+  </div>
+
+  <button class="reset-btn" onclick="resetProgress()">Reset All Checkboxes for Next Week</button>
+
 </div>
 
-<script>
-// ══════════════════════════════════════
-// DATA
-// ══════════════════════════════════════
-const DAYS = [
-  {
-    name: "Monday", emoji: "📅", desc: "School + Gym",
-    badges: [{ text: "School", color: "#e07b54" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
-      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
-      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
-      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
-      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
-      { label: "Break / snack",       time: "5pm – 6pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "CS self-study",       time: "6pm – 7pm",     hrs: 1,    color: "#0abde3" },
-      { label: "Dinner",              time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Free time / games",   time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
-      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "Physics – read 1 topic from current chapter", tag: "Physics", tagColor: "#44bd32" },
-      { text: "Physics – solve NCERT examples", tag: "Physics", tagColor: "#44bd32" },
-      { text: "CS – complete 1 unit topic / write code", tag: "CS", tagColor: "#0abde3" },
-      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
-    ]
-  },
-  {
-    name: "Tuesday", emoji: "📅", desc: "School + Gym",
-    badges: [{ text: "School", color: "#e07b54" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
-      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
-      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
-      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
-      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
-      { label: "Break / snack",       time: "5pm – 6pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "English self-study",  time: "6pm – 7pm",     hrs: 1,    color: "#a29bfe" },
-      { label: "Dinner",              time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Free time / games",   time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
-      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "Physics – 1 topic + derivation from memory", tag: "Physics", tagColor: "#44bd32" },
-      { text: "English – 1 Flamingo/Vistas chapter", tag: "English", tagColor: "#a29bfe" },
-      { text: "English – 1 writing format practice", tag: "English", tagColor: "#a29bfe" },
-      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
-    ]
-  },
-  {
-    name: "Wednesday", emoji: "📅", desc: "School + Chem Tuition + Gym",
-    badges: [{ text: "School", color: "#e07b54" }, { text: "Chem Tuition 5–7pm", color: "#f9ca24" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
-      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
-      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
-      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
-      { label: "English / CS",        time: "3:45 – 5pm",    hrs: 1.25, color: "#a29bfe" },
-      { label: "Chem tuition",        time: "5pm – 7pm",     hrs: 2,    color: "#f9ca24" },
-      { label: "Chem revision",       time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Dinner + free",       time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
-      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "English or CS – 1 topic before tuition", tag: "English/CS", tagColor: "#a29bfe" },
-      { text: "Chem tuition – pay attention, note doubts", tag: "Chemistry", tagColor: "#f9ca24" },
-      { text: "After tuition – rewrite key reactions from memory", tag: "Chemistry", tagColor: "#f9ca24" },
-      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
-    ]
-  },
-  {
-    name: "Thursday", emoji: "📅", desc: "School + Gym",
-    badges: [{ text: "School", color: "#e07b54" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
-      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
-      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
-      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
-      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
-      { label: "Break / snack",       time: "5pm – 6pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Psychology",          time: "6pm – 7pm",     hrs: 1,    color: "#e17055" },
-      { label: "Dinner",              time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Free time / games",   time: "8pm – 10pm",    hrs: 2,    color: "#fd79a8" },
-      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "Physics – numericals from current chapter", tag: "Physics", tagColor: "#44bd32" },
-      { text: "Psychology – read 1 chapter, make short notes", tag: "Psychology", tagColor: "#e17055" },
-      { text: "Psychology – answer 1 previous year 5-mark Q", tag: "Psychology", tagColor: "#e17055" },
-      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
-    ]
-  },
-  {
-    name: "Friday", emoji: "📅", desc: "School + Bio Tuition + Gym",
-    badges: [{ text: "Bio Tuition 5–7pm", color: "#0abde3" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 7am",    hrs: 7,    color: "#2d3561" },
-      { label: "Morning routine",     time: "7am – 8am",     hrs: 1,    color: "#3d5a80" },
-      { label: "School",              time: "8am – 3pm",     hrs: 7,    color: "#e07b54" },
-      { label: "Decompress / travel", time: "3pm – 3:45pm",  hrs: 0.75, color: "#c44569" },
-      { label: "Physics self-study",  time: "3:45 – 5pm",    hrs: 1.25, color: "#44bd32" },
-      { label: "Bio tuition",         time: "5pm – 7pm",     hrs: 2,    color: "#0abde3" },
-      { label: "Dinner + break",      time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Gym",                 time: "8pm – 10pm",    hrs: 2,    color: "#ff6b6b" },
-      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "Physics – 1 topic before tuition", tag: "Physics", tagColor: "#44bd32" },
-      { text: "Bio tuition – note all diagrams teacher draws", tag: "Biology", tagColor: "#0abde3" },
-      { text: "After tuition – redraw 1 diagram from memory", tag: "Biology", tagColor: "#0abde3" },
-      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
-    ]
-  },
-  {
-    name: "Saturday", emoji: "📅", desc: "Chem Tuition + Gym",
-    badges: [{ text: "Chem Tuition 5–7pm", color: "#f9ca24" }, { text: "Gym 8–10pm", color: "#ff6b6b" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 9:30am", hrs: 9.5,  color: "#2d3561" },
-      { label: "Morning routine",     time: "9:30 – 10:30am",hrs: 1,    color: "#3d5a80" },
-      { label: "Physics self-study",  time: "10:30am – 12pm",hrs: 1.5,  color: "#44bd32" },
-      { label: "Lunch + break",       time: "12pm – 1pm",    hrs: 1,    color: "#f9ca24" },
-      { label: "CS / English",        time: "1pm – 3pm",     hrs: 2,    color: "#0abde3" },
-      { label: "Free time",           time: "3pm – 5pm",     hrs: 2,    color: "#fd79a8" },
-      { label: "Chem tuition",        time: "5pm – 7pm",     hrs: 2,    color: "#f9ca24" },
-      { label: "Chem revision",       time: "7pm – 8pm",     hrs: 1,    color: "#f9ca24" },
-      { label: "Gym",                 time: "8pm – 10pm",    hrs: 2,    color: "#ff6b6b" },
-      { label: "Wind down",           time: "10pm – 12am",   hrs: 2,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "Physics – full chapter revision / derivations", tag: "Physics", tagColor: "#44bd32" },
-      { text: "CS – 1 full unit or SQL practice queries", tag: "CS", tagColor: "#0abde3" },
-      { text: "Chem tuition – solve examples in real time", tag: "Chemistry", tagColor: "#f9ca24" },
-      { text: "After tuition – rewrite key reactions from memory", tag: "Chemistry", tagColor: "#f9ca24" },
-      { text: "Gym – don't skip 💪", tag: "Fitness", tagColor: "#ff6b6b" },
-    ]
-  },
-  {
-    name: "Sunday", emoji: "📅", desc: "Bio Tuition + Free Day (no gym)",
-    badges: [{ text: "Bio Tuition 10am–12pm", color: "#0abde3" }, { text: "No Gym", color: "#636e72" }],
-    slots: [
-      { label: "Sleep",               time: "12am – 9am",    hrs: 9,    color: "#2d3561" },
-      { label: "Morning routine",     time: "9am – 10am",    hrs: 1,    color: "#3d5a80" },
-      { label: "Bio tuition",         time: "10am – 12pm",   hrs: 2,    color: "#0abde3" },
-      { label: "Lunch + rest",        time: "12pm – 1pm",    hrs: 1,    color: "#f9ca24" },
-      { label: "Bio revision",        time: "1pm – 2:30pm",  hrs: 1.5,  color: "#44bd32" },
-      { label: "FREE TIME 🎮",        time: "2:30pm – 6pm",  hrs: 3.5,  color: "#fd79a8" },
-      { label: "Physics self-study",  time: "6pm – 7:30pm",  hrs: 1.5,  color: "#a29bfe" },
-      { label: "English / Psych",     time: "7:30pm – 9pm",  hrs: 1.5,  color: "#e17055" },
-      { label: "Wind down / free",    time: "9pm – 12am",    hrs: 3,    color: "#636e72" },
-    ],
-    tasks: [
-      { text: "Bio tuition – note all diagrams", tag: "Biology", tagColor: "#0abde3" },
-      { text: "Bio revision – redraw 2 diagrams from memory", tag: "Biology", tagColor: "#0abde3" },
-      { text: "Physics – solve 5 numericals", tag: "Physics", tagColor: "#a29bfe" },
-      { text: "English – 1 chapter OR Psychology – 1 chapter", tag: "Eng/Psych", tagColor: "#e17055" },
-      { text: "Game / chill with friends 🎮", tag: "Free", tagColor: "#fd79a8" },
-    ]
-  }
-];
+<script type="module">
+  // 1. Import Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
-// ══════════════════════════════════════
-// FIREBASE
-// ══════════════════════════════════════
-let db = null;
-let fbRef = null;
-let cloudState = {};
+  // 2. YOUR REAL FIREBASE KEYS
+  const firebaseConfig = {
+    apiKey: "AIzaSyBegeY2e5iCpNTD1jMvWrAUogp3J7dmRbo",
+    authDomain: "gymplannerforme.firebaseapp.com",
+    projectId: "gymplannerforme",
+    storageBucket: "gymplannerforme.firebasestorage.app",
+    messagingSenderId: "491209321056",
+    appId: "1:491209321056:web:f08047702b104aa12c3105",
+    measurementId: "G-11MJQY8FR3"
+  };
 
-function initFirebase() {
-  const saved = localStorage.getItem('fb_config');
-  if (!saved) return;
-  try {
-    const cfg = JSON.parse(saved);
-    if (!firebase.apps.length) firebase.initializeApp(cfg);
-    db = firebase.database();
-    fbRef = db.ref('advaay_schedule');
-    fbRef.on('value', snap => {
-      cloudState = snap.val() || {};
-      const day = currentDayIndex();
-      loadChecks(day);
-      refreshGraph();
-    });
-    document.getElementById('syncDot').classList.add('connected');
-    document.getElementById('syncText').textContent = 'Synced';
-    document.getElementById('firebaseConfigInput').value = JSON.stringify(cfg, null, 2);
-  } catch(e) {
-    document.getElementById('syncText').textContent = 'Config error';
-  }
-}
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-function saveFirebaseConfig() {
-  const val = document.getElementById('firebaseConfigInput').value.trim();
-  try {
-    const cfg = JSON.parse(val);
-    localStorage.setItem('fb_config', JSON.stringify(cfg));
-    location.reload();
-  } catch(e) {
-    alert('Invalid JSON. Check your config and try again.');
-  }
-}
+  // 3. UI Elements
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+  const masterSyncBtn = document.getElementById('master-sync-btn');
 
-function getState() {
-  if (db) return cloudState;
-  try { return JSON.parse(localStorage.getItem('advaay_checks')) || {}; } catch { return {}; }
-}
+  let workoutRef;
+  let unsubscribe = null; 
 
-function saveState(s) {
-  if (db && fbRef) {
-    fbRef.set(s);
-  } else {
-    try { localStorage.setItem('advaay_checks', JSON.stringify(s)); } catch {}
-  }
-}
+  // 4. Function to Connect to the Cloud Database Room
+  function connectToRoom(roomKey) {
+    if (unsubscribe) unsubscribe(); // Disconnect from old room if changing
+    
+    // Clear boxes visually before loading from cloud
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    // Set the specific save file location in Firebase
+    workoutRef = doc(db, "workouts", roomKey);
+    
+    // Update the sleek button to show success
+    masterSyncBtn.innerHTML = `🟢 Synced (Key: ${roomKey})`;
+    masterSyncBtn.classList.add('synced');
 
-// ══════════════════════════════════════
-// SCREEN NAV
-// ══════════════════════════════════════
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-  event.target.classList.add('active');
-  if (name === 'graph') refreshGraph();
-}
-
-// ══════════════════════════════════════
-// BUILD SCHEDULE
-// ══════════════════════════════════════
-const tabsEl = document.getElementById('tabs');
-const panelsEl = document.getElementById('panels');
-const piesDrawn = {};
-
-DAYS.forEach((day, i) => {
-  const tab = document.createElement('div');
-  tab.className = 'tab' + (i === 0 ? ' active' : '');
-  tab.textContent = day.name;
-  tab.onclick = () => switchDay(i);
-  tabsEl.appendChild(tab);
-
-  const panel = document.createElement('div');
-  panel.className = 'day-panel' + (i === 0 ? ' active' : '');
-  panel.id = 'panel-' + i;
-
-  const badgesHTML = day.badges.map(b =>
-    `<span class="badge" style="background:${b.color}22;color:${b.color};border:1px solid ${b.color}44">${b.text}</span>`
-  ).join('');
-
-  const legendHTML = day.slots.map(s =>
-    `<div class="legend-item">
-      <div class="dot" style="background:${s.color}"></div>
-      <div class="legend-label">${s.label}</div>
-      <div class="legend-time">${s.time}</div>
-      <div class="legend-hrs">${s.hrs}h</div>
-    </div>`
-  ).join('');
-
-  const tasksHTML = day.tasks.map((t, ti) =>
-    `<div class="check-item" id="task-${i}-${ti}" onclick="toggleTask(${i},${ti})">
-      <div class="checkbox" id="cb-${i}-${ti}"></div>
-      <div class="check-text">${t.text}</div>
-      <span class="check-tag" style="background:${t.tagColor}22;color:${t.tagColor};border:1px solid ${t.tagColor}44">${t.tag}</span>
-    </div>`
-  ).join('');
-
-  panel.innerHTML = `
-    <div class="day-card">
-      <div class="day-header">
-        <div>
-          <div class="day-title">${day.emoji} ${day.name}</div>
-          <div class="day-desc">${day.desc}</div>
-        </div>
-        <div class="badges">${badgesHTML}</div>
-      </div>
-      <div class="content-row">
-        <div class="pie-wrap">
-          <canvas class="pie" id="pie-${i}" width="200" height="200"></canvas>
-          <div class="legend">${legendHTML}</div>
-        </div>
-        <div class="right-col">
-          <div class="checklist-title">✅ Today's Tasks</div>
-          <div class="checklist">${tasksHTML}</div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar" id="prog-${i}" style="width:0%"></div>
-          </div>
-          <div class="progress-label" id="prog-label-${i}">0 / ${day.tasks.length} done</div>
-          <button class="reset-btn" onclick="resetDay(${i})">Reset checklist</button>
-        </div>
-      </div>
-    </div>`;
-  panelsEl.appendChild(panel);
-});
-
-// ══════════════════════════════════════
-// PIE CHARTS
-// ══════════════════════════════════════
-function drawPie(i) {
-  const canvas = document.getElementById('pie-' + i);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const slots = DAYS[i].slots;
-  const cx = canvas.width / 2, cy = canvas.height / 2;
-  const r = 80, innerR = 36;
-  const total = slots.reduce((s, d) => s + d.hrs, 0);
-  let startAngle = -Math.PI / 2;
-  slots.forEach(seg => {
-    const slice = (seg.hrs / total) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
-    ctx.closePath();
-    ctx.fillStyle = seg.color;
-    ctx.fill();
-    ctx.strokeStyle = "#0d0f18";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    startAngle += slice;
-  });
-  ctx.beginPath();
-  ctx.arc(cx, cy, innerR, 0, 2 * Math.PI);
-  ctx.fillStyle = "#1a1d27";
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 12px Segoe UI";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("24h", cx, cy);
-}
-
-function currentDayIndex() {
-  return new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-}
-
-function switchDay(i) {
-  document.querySelectorAll('.tab').forEach((t, ti) => t.classList.toggle('active', ti === i));
-  document.querySelectorAll('.day-panel').forEach((p, pi) => p.classList.toggle('active', pi === i));
-  if (!piesDrawn[i]) { drawPie(i); piesDrawn[i] = true; }
-  loadChecks(i);
-}
-
-// ══════════════════════════════════════
-// CHECKLIST
-// ══════════════════════════════════════
-function toggleTask(dayI, taskI) {
-  const state = getState();
-  const key = `${dayI}-${taskI}`;
-  state[key] = !state[key];
-  saveState(state);
-  applyCheck(dayI, taskI, state[key]);
-  updateProgress(dayI);
-}
-
-function applyCheck(dayI, taskI, done) {
-  const item = document.getElementById(`task-${dayI}-${taskI}`);
-  const cb = document.getElementById(`cb-${dayI}-${taskI}`);
-  if (!item) return;
-  item.classList.toggle('done', done);
-  cb.textContent = done ? '✓' : '';
-}
-
-function loadChecks(dayI) {
-  const state = getState();
-  DAYS[dayI].tasks.forEach((_, ti) => applyCheck(dayI, ti, !!state[`${dayI}-${ti}`]));
-  updateProgress(dayI);
-}
-
-function updateProgress(dayI) {
-  const state = getState();
-  const total = DAYS[dayI].tasks.length;
-  const done = DAYS[dayI].tasks.filter((_, ti) => state[`${dayI}-${ti}`]).length;
-  const pct = Math.round((done / total) * 100);
-  const bar = document.getElementById(`prog-${dayI}`);
-  const lbl = document.getElementById(`prog-label-${dayI}`);
-  if (bar) bar.style.width = pct + '%';
-  if (lbl) lbl.textContent = `${done} / ${total} done`;
-}
-
-function resetDay(dayI) {
-  const state = getState();
-  DAYS[dayI].tasks.forEach((_, ti) => delete state[`${dayI}-${ti}`]);
-  saveState(state);
-  loadChecks(dayI);
-}
-
-// ══════════════════════════════════════
-// PROGRESS GRAPH
-// ══════════════════════════════════════
-let chartInstance = null;
-
-function getTodayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function getTodayPct() {
-  const state = getState();
-  const dayI = currentDayIndex();
-  const total = DAYS[dayI].tasks.length;
-  const done = DAYS[dayI].tasks.filter((_, ti) => state[`${dayI}-${ti}`]).length;
-  return Math.round((done / total) * 100);
-}
-
-function logToday() {
-  const state = getState();
-  const key = 'log_' + getTodayKey();
-  const pct = getTodayPct();
-  if (state[key] !== undefined) {
-    document.getElementById('logMsg').textContent = `Already logged today: ${state[key]}%`;
-    return;
-  }
-  state[key] = pct;
-  saveState(state);
-  document.getElementById('logMsg').textContent = `✅ Logged ${pct}% for today!`;
-  refreshGraph();
-}
-
-function refreshGraph() {
-  const state = getState();
-  const logs = [];
-  Object.keys(state).filter(k => k.startsWith('log_')).sort().forEach(k => {
-    logs.push({ date: k.replace('log_', ''), pct: state[k] });
-  });
-
-  const labels = logs.map(l => {
-    const [y, m, d] = l.date.split('-');
-    return `${d}/${m}`;
-  });
-  const data = logs.map(l => l.pct);
-
-  // Stats
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const monthLogs = logs.filter(l => l.date.startsWith(thisMonth));
-  const avg = monthLogs.length ? Math.round(monthLogs.reduce((s,l) => s+l.pct, 0) / monthLogs.length) : 0;
-  const best = logs.length ? Math.max(...logs.map(l => l.pct)) : 0;
-
-  // Streak
-  let streak = 0;
-  const today = getTodayKey();
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const k = `log_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    if (state[k] !== undefined && state[k] > 0) streak++;
-    else if (i > 0) break;
-  }
-
-  document.getElementById('statAvg').textContent = avg + '%';
-  document.getElementById('statStreak').textContent = streak;
-  document.getElementById('statBest').textContent = best + '%';
-  document.getElementById('statTotal').textContent = logs.length;
-
-  // Update log button
-  const todayLogged = state['log_' + today] !== undefined;
-  const btn = document.getElementById('logBtn');
-  btn.disabled = todayLogged;
-  if (todayLogged) {
-    document.getElementById('logMsg').textContent = `Today logged: ${state['log_' + today]}%`;
-  }
-
-  // Draw chart
-  const ctx = document.getElementById('progressChart').getContext('2d');
-  if (chartInstance) chartInstance.destroy();
-
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels.length ? labels : ['No data yet'],
-      datasets: [{
-        label: 'Daily Task %',
-        data: data.length ? data : [0],
-        borderColor: '#a0c4ff',
-        backgroundColor: 'rgba(160,196,255,0.08)',
-        borderWidth: 2.5,
-        pointBackgroundColor: data.map(v => v >= 75 ? '#44bd32' : v >= 50 ? '#f9ca24' : '#ff6b6b'),
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        tension: 0.35,
-        fill: true,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a1d27',
-          borderColor: '#2a2d3a',
-          borderWidth: 1,
-          titleColor: '#a0c4ff',
-          bodyColor: '#ccc',
-          callbacks: {
-            label: ctx => ` ${ctx.parsed.y}% tasks done`
+    // Listen for cloud changes (when you click on another device)
+    unsubscribe = onSnapshot(workoutRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        checkboxes.forEach(checkbox => {
+          if (data[checkbox.id] !== undefined) {
+            checkbox.checked = data[checkbox.id];
           }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#555', font: { size: 11 } },
-          grid: { color: '#1e2130' }
-        },
-        y: {
-          min: 0, max: 100,
-          ticks: { color: '#555', font: { size: 11 }, callback: v => v + '%' },
-          grid: { color: '#1e2130' }
-        }
+        });
+      } else {
+        // If save file doesn't exist yet, create an empty one
+        setDoc(workoutRef, {}, { merge: true });
       }
+    });
+  }
+
+  // 5. On Page Load: Check if they already have a key saved in this browser
+  const savedKey = localStorage.getItem('gymSyncKey');
+  if (savedKey) {
+    connectToRoom(savedKey);
+  }
+
+  // 6. The sleek button click event
+  masterSyncBtn.addEventListener('click', () => {
+    const currentKey = localStorage.getItem('gymSyncKey');
+    const msg = currentKey 
+      ? `You are currently synced to [${currentKey}].\nEnter a new Secret Key if you want to switch accounts:`
+      : `Enter a Secret Word (e.g. ZYZZ2026) to sync your progress across devices:`;
+      
+    const newKey = prompt(msg, currentKey || "");
+    
+    if (newKey && newKey.trim() !== "") {
+      const formattedKey = newKey.trim().toUpperCase();
+      localStorage.setItem('gymSyncKey', formattedKey);
+      connectToRoom(formattedKey);
     }
   });
-}
 
-// ══════════════════════════════════════
-// INIT
-// ══════════════════════════════════════
-initFirebase();
-drawPie(0);
-piesDrawn[0] = true;
-const todayI = currentDayIndex();
-loadChecks(0);
+  // 7. Whenever a checkbox is clicked, save it to the cloud
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', async function() {
+      if (!workoutRef) {
+        alert("Please click 'Enable Cloud Sync' at the top first!");
+        this.checked = !this.checked; // Revert the visual check
+        return;
+      }
+      await setDoc(workoutRef, {
+        [this.id]: this.checked
+      }, { merge: true });
+    });
+  });
 
-// Auto-highlight today's tab
-document.querySelectorAll('.tab')[todayI]?.click();
+  // 8. Reset Week button
+  window.resetProgress = async function() {
+    if (!workoutRef) return alert("Connect to Cloud Sync first!");
+    if(confirm("Are you ready to crush a new week? This clears everything on all your synced devices.")) {
+      const resetData = {};
+      checkboxes.forEach(checkbox => {
+        resetData[checkbox.id] = false;
+      });
+      await setDoc(workoutRef, resetData, { merge: true });
+    }
+  }
 </script>
+
 </body>
 </html>
